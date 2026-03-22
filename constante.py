@@ -12,3 +12,6 @@ TITULO      = "🌸 Letrova"
 SUBTITULO   = "La misma letra, una vida nueva en español"
 FOOTER      = "🌸 Letrova · moderna · elegante · dinámica"
 APP_TITLE   = "Letrova"
+
+# Ruta de Tesseract
+TESSERACT_PATH = r'C:\Program Files\Tesseract-OCR\tesseract.exe'

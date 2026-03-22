@@ -1,5 +1,6 @@
 import gradio as gr
 import constante
+import ocr
 
 #CSS personalizado Nicaury Diaz 23-SISN-2-028
 css = """
@@ -138,8 +139,14 @@ def procesar_archivo(archivo):
 def procesar_imagen(imagen):
     if imagen is None:
         return constante.ERROR_IMAGEN
-    alto, ancho = imagen.size[1], imagen.size[0]
-    return f"📸 Imagen recibida — {ancho}×{alto}px · lista para extraer texto con OCR."
+    try:
+        texto = ocr.extraer_texto(imagen)
+        if not texto.strip():
+            return "⚠️ No se detectó texto en la imagen. Intenta con una foto más nítida."
+        palabras = len(texto.split())
+        return f"📖 Texto extraído — {len(texto)} caracteres · {palabras} palabras\n\n{texto}"
+    except Exception as e:
+        return f"❌ Error al procesar la imagen: {str(e)}"
 
 # Interfaz gr.blocks que permite que la aplicacion sea funcional Nicaury Diaz 23-SISN-2-028
 with gr.Blocks(title=constante.APP_TITLE) as app:
