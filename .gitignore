@@ -2,7 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+modelo_genero.pt
+modelo_tipo.pt
 # C extensions
 *.so
 
