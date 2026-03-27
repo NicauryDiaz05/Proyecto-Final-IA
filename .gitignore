@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 modelo_genero.pt
 modelo_tipo.pt
+bert_local
 # C extensions
 *.so
 

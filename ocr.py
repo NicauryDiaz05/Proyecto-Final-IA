@@ -3,11 +3,12 @@ import cv2
 import numpy as np
 import constante
 import re
+import clasificador
 
 pytesseract.pytesseract.tesseract_cmd = constante.TESSERACT_PATH
 
 # Convierte PIL a formato OpenCV para procesarla 
-# y aumenta el contraste para mejorar la lectura del OCRNicaury Diaz 23-SISN-2-028 
+# y aumenta el contraste para mejorar la lectura del OCR Nicaury Diaz 23-SISN-2-028 
 def preprocesar_imagen(imagen_pil):
     imagen_np = np.array(imagen_pil)
     imagen_gris = cv2.cvtColor(imagen_np, cv2.COLOR_RGB2GRAY)
@@ -28,5 +29,9 @@ def extraer_texto(imagen_pil):
     imagen_procesada = preprocesar_imagen(imagen_pil)
     texto = pytesseract.image_to_string(imagen_procesada, lang='spa+eng')
     texto_limpio = limpiar_texto(texto)
-    return texto_limpio
 
+    # Clasificación literaria del texto extraído Nicaury Diaz 23-SISN-2-028
+    resultado = clasificador.clasificar_texto(texto_limpio)
+    clasificacion = clasificador.resultado_texto(resultado)
+
+    return texto_limpio, clasificacion

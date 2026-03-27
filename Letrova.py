@@ -1,6 +1,8 @@
 import gradio as gr
 import constante
 import ocr
+import clasificador
+
 
 #CSS personalizado Nicaury Diaz 23-SISN-2-028
 css = """
@@ -120,62 +122,107 @@ button.primary:active { transform: scale(0.98) !important; }
 #footer { text-align: center; padding: 1rem 0 2rem; }
 #footer p { color: rgba(236,72,153,0.35) !important; font-size: 0.8rem !important; letter-spacing: 0.1em; }
 """
-#Funciones Principales — validan y reciben los 3 canales de entrada Nicaury Diaz 23-SISN-2-028
+
+#Funciones Principales Nicaury Diaz 23-SISN-2-028 
+
 def analizar_texto(texto):
     if not texto or not texto.strip():
-        return constante.ERROR_TEXTO
-    palabras = len(texto.split())
-    return f"✨ Texto recibido — {len(texto)} caracteres · {palabras} palabras · listo para procesar."
+        return constante.ERROR_TEXTO, ""
+
+    palabras  = len(texto.split())
+    resumen   = f"✨ Texto recibido — {len(texto)} caracteres · {palabras} palabras · listo para procesar."
+    resultado = clasificador.clasificar_texto(texto)
+    clasif    = clasificador.resultado_texto(resultado)
+
+    return resumen, clasif
+
 
 def procesar_archivo(archivo):
     if archivo is None:
-        return constante.ERROR_ARCHIVO
+        return constante.ERROR_ARCHIVO, ""
+
     nombre    = archivo.name.split("\\")[-1].split("/")[-1]
     extension = "." + nombre.split(".")[-1].lower()
+
     if extension not in constante.TIPOS_VALIDOS:
-        return constante.ERROR_FORMATO
-    return f"📄 Archivo recibido: {nombre} · listo para procesar."
+        return constante.ERROR_FORMATO, ""
+
+    resultado     = clasificador.clasificar_texto(nombre)
+    clasificacion = clasificador.resultado_texto(resultado)
+
+    return f"📄 Archivo: {nombre}", clasificacion
+
 
 def procesar_imagen(imagen):
     if imagen is None:
-        return constante.ERROR_IMAGEN
-    try:
-        texto = ocr.extraer_texto(imagen)
-        if not texto.strip():
-            return "⚠️ No se detectó texto en la imagen. Intenta con una foto más nítida."
-        palabras = len(texto.split())
-        return f"📖 Texto extraído — {len(texto)} caracteres · {palabras} palabras\n\n{texto}"
-    except Exception as e:
-        return f"❌ Error al procesar la imagen: {str(e)}"
+        return constante.ERROR_IMAGEN, ""
 
-# Interfaz gr.blocks que permite que la aplicacion sea funcional Nicaury Diaz 23-SISN-2-028
+    try:
+        texto, clasificacion = ocr.extraer_texto(imagen)
+
+        if not texto.strip():
+            return "⚠️ No se detectó texto en la imagen. Intenta con una foto más nítida.", ""
+
+        palabras = len(texto.split())
+        resumen  = f"📖 Texto extraído — {len(texto)} caracteres · {palabras} palabras\n\n{texto}"
+
+        return resumen, clasificacion
+
+    except Exception as e:
+        return f"❌ Error al procesar la imagen: {str(e)}", ""
+
+
+# Interfaz Nicaury Diaz 23-SISN-2-028 
 with gr.Blocks(title=constante.APP_TITLE) as app:
 
     gr.HTML(f'<div id="titulo"><h1>{constante.TITULO}</h1><p>{constante.SUBTITULO}</p></div>')
 
     with gr.Tabs():
+
+        #Texto
         with gr.Tab("✏️ Texto"):
             with gr.Group(elem_classes="panel"):
-                texto_input  = gr.Textbox(label="✨ Entrada de texto", placeholder="Escribe o pega el texto...", lines=7)
-                texto_btn    = gr.Button("💗 Analizar texto", variant="primary")
+                texto_input = gr.Textbox(label="✨ Entrada de texto", placeholder="Escribe o pega el texto...", lines=7)
+                texto_btn    = gr.Button("💗 Analizar", variant="primary")
                 texto_salida = gr.Textbox(label="Resultado", interactive=False, lines=2)
-            texto_btn.click(analizar_texto, texto_input, texto_salida)
+                texto_clasif = gr.Textbox(label="🌸 Clasificación literaria", interactive=False, lines=14)
+               
+            texto_btn.click(
+                analizar_texto,
+                inputs=[texto_input],
+                outputs=[texto_salida, texto_clasif]
+            )
 
+        # Archivos
         with gr.Tab("📁 Archivos"):
             with gr.Group(elem_classes="panel"):
-                archivo_input  = gr.File(label="📄 Subir archivo (PDF · EPUB · DOCX · TXT)", file_types=[".pdf",".epub",".docx",".txt"])
-                archivo_btn    = gr.Button("🌸 Procesar archivo", variant="primary")
+                archivo_input = gr.File(label="📄 Subir archivo (PDF · EPUB · DOCX · TXT)", file_types=[".pdf",".epub",".docx",".txt"])
+                archivo_btn    = gr.Button("🌸 Analizar", variant="primary")
                 archivo_salida = gr.Textbox(label="Resultado", interactive=False, lines=2)
-            archivo_btn.click(procesar_archivo, archivo_input, archivo_salida)
+                archivo_clasif = gr.Textbox(label="🌸 Clasificación literaria", interactive=False, lines=14)
+        
+            archivo_btn.click(
+                procesar_archivo,
+                inputs=[archivo_input],
+                outputs=[archivo_salida, archivo_clasif]
+            )
 
+        # Cámara
         with gr.Tab("📷 Cámara"):
             with gr.Group(elem_classes="panel"):
-                imagen_input  = gr.Image(label="📸 Captura desde cámara o sube una imagen", type="pil", sources=["upload","webcam"])
-                imagen_btn    = gr.Button("💜 Procesar imagen", variant="primary")
+                imagen_input = gr.Image(label="📸 Captura desde cámara o sube una imagen", type="pil", sources=["upload","webcam"])
+                imagen_btn    = gr.Button("💜 Analizar ", variant="primary")
                 imagen_salida = gr.Textbox(label="Resultado", interactive=False, lines=2)
-            imagen_btn.click(procesar_imagen, imagen_input, imagen_salida)
+                imagen_clasif = gr.Textbox(label="🌸 Clasificación literaria", interactive=False, lines=14)
+           
+            imagen_btn.click(
+                procesar_imagen,
+                inputs=[imagen_input],
+                outputs=[imagen_salida, imagen_clasif]
+            )
 
     gr.HTML(f'<div id="footer"><p>{constante.FOOTER}</p></div>')
 
 if __name__ == "__main__":
     app.launch(css=css)
+
