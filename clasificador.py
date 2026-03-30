@@ -1,4 +1,8 @@
 import os
+import re
+import unicodedata
+from collections import Counter
+import requests
 import torch
 import numpy as np
 from transformers import AutoTokenizer, BertForSequenceClassification, BertConfig
@@ -50,7 +54,7 @@ def _cargar_modelos():
     global _autores_index, _autores_meta
 
     if _tokenizer is not None:
-        return  
+        return
 
     _tokenizer     = AutoTokenizer.from_pretrained(MODEL_NAME)
     _modelo_genero = _construir_modelo(RUTA_GENERO, NUM_LABELS) if os.path.exists(RUTA_GENERO) else None
@@ -106,16 +110,135 @@ def _predecir_tipo(texto: str) -> dict:
     }
 
 
-def _predecir_autor(texto: str) -> dict:
-    if _embedder is None or _autores_index is None:
-        return {'autor': 'No identificado', 'confianza': 'N/D'}
-    emb = _embedder.encode([texto], convert_to_numpy=True).astype('float32')
-    faiss.normalize_L2(emb)
-    D, I = _autores_index.search(emb, k=1)
-    similitud = float(D[0][0])
-    autor = _autores_meta[I[0][0]] if similitud > 0.5 else 'No identificado'
-    return {'autor': autor, 'confianza': f'{similitud*100:.1f}%' if similitud > 0.5 else 'baja'}
+def _limpiar_texto(texto):
+    palabras = re.findall(r'\b[a-zA-ZáéíóúÁÉÍÓÚñÑ]{4,}\b', texto)
+    stopwords = {
+        'that','this','with','from','they','have','been','were','their',
+        'when','what','which','there','would','could','should','about',
+        'into','over','after','before','more','than','your','very',
+        'para','pero','como','todo','esta','esto','también','porque',
+        'hasta','desde','entre','sobre','tiene','según','durante'
+    }
+    return ' '.join(p for p in palabras if p.lower() not in stopwords)[:80]
 
+def _invertir_nombre_gutenberg(nombre: str) -> str:
+    nombre = re.sub(r',?\s*\d{4}-\d{4}', '', nombre).strip()
+    if ',' not in nombre:
+        return nombre
+    partes    = [p.strip() for p in nombre.split(',', 1)]
+    apellido  = partes[0]
+    prenombre = partes[1] if len(partes) > 1 else ''
+    return f'{prenombre} {apellido}' if prenombre else apellido
+
+
+def _buscar_gutenberg(texto):
+    query = _limpiar_texto(texto)
+    try:
+        r = requests.get(
+            'https://gutendex.com/books/',
+            params={'search': query, 'languages': 'en,es'},
+            timeout=10
+        )
+        candidatos = []
+        for libro in r.json().get('results', [])[:5]:
+            autores = libro.get('authors', [])
+            if autores:
+                nombre = _invertir_nombre_gutenberg(autores[0].get('name', ''))
+                if nombre:
+                    candidatos.append({
+                        'autor':  nombre,
+                        'titulo': libro.get('title', 'N/D'),
+                        'fuente': 'Gutenberg',
+                        'score':  libro.get('download_count', 0)
+                    })
+        return candidatos
+    except Exception:
+        return []
+
+
+def _buscar_open_library(texto):
+    query = _limpiar_texto(texto)
+    try:
+        r = requests.get(
+            'https://openlibrary.org/search.json',
+            params={'q': query, 'limit': 5,
+                    'fields': 'title,author_name,first_publish_year,isbn'},
+            timeout=10
+        )
+        candidatos = []
+        for doc in r.json().get('docs', [])[:5]:
+            autores = doc.get('author_name', [])
+            if autores:
+                candidatos.append({
+                    'autor':  autores[0],
+                    'titulo': doc.get('title', 'N/D'),
+                    'año':    doc.get('first_publish_year', 'N/D'),
+                    'fuente': 'OpenLibrary',
+                    'score':  1
+                })
+        return candidatos
+    except Exception:
+        return []
+
+
+def _buscar_google_books(texto):
+    query = f'"{texto[:60]}"'
+    try:
+        r = requests.get(
+            'https://www.googleapis.com/books/v1/volumes',
+            params={'q': query, 'maxResults': 5, 'printType': 'books'},
+            timeout=10
+        )
+        candidatos = []
+        for item in r.json().get('items', [])[:5]:
+            info    = item.get('volumeInfo', {})
+            autores = info.get('authors', [])
+            if autores:
+                candidatos.append({
+                    'autor':  autores[0],
+                    'titulo': info.get('title', 'N/D'),
+                    'fuente': 'GoogleBooks',
+                    'score':  1
+                })
+        return candidatos
+    except Exception:
+        return []
+
+
+def _normalizar_nombre(nombre: str) -> str:
+    nfkd = unicodedata.normalize('NFKD', nombre)
+    sin_tildes = ''.join(c for c in nfkd if not unicodedata.combining(c))
+    return re.sub(r'\s+', ' ', sin_tildes).strip().lower()
+
+
+def _consenso_autor(candidatos):
+    grupos = {}
+    for c in candidatos:
+        clave = _normalizar_nombre(c['autor'])
+        grupos.setdefault(clave, []).append(c['autor'])
+
+    if not grupos:
+        return 'No identificado', 'baja'
+
+    mejor_clave     = max(grupos, key=lambda k: len(grupos[k]))
+    total_votos     = len(grupos[mejor_clave])
+    nombre_original = Counter(grupos[mejor_clave]).most_common(1)[0][0]
+
+    nivel = 'alta' if total_votos >= 3 else 'media' if total_votos >= 2 else 'baja'
+    return nombre_original, nivel
+
+
+def _predecir_autor(texto):
+    candidatos = []
+    candidatos.extend(_buscar_gutenberg(texto))
+    candidatos.extend(_buscar_open_library(texto))
+    candidatos.extend(_buscar_google_books(texto))
+
+    if not candidatos:
+        return {'autor': 'No identificado', 'confianza': 'N/D'}
+
+    autor, nivel = _consenso_autor(candidatos)
+    return {'autor': autor, 'confianza': nivel}
 
 
 # ENTRADA PÚBLICA Nicaury Diaz 23-SISN-2-028
