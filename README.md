@@ -32,13 +32,10 @@ MODULO 1: CLASIFICACION INTELIGENTE DE LIBROS
 El primer modulo se encarga de analizar el contenido textual de un libro o
 fragmento para extraer tres categorias clave:
 
-- Genero literario: terror, romance, ciencia ficcion, fantasia, misterio,
-  historico, entre otros.
-- Tipo de lectura: academico, casual, tecnico, infantil, juvenil o de
-  autoayuda.
+- Genero literario:Novela, Cuento, Poesía, Ensayo, Teatro, Fábula, Crónica
+- Tipo de lectura: academico, entretenimiento, infantil, juvenil .
 - Identificacion del autor: se analiza el contenido del texto para determinar
-  quien es el autor de la obra, mostrando informacion relevante como su nombre,
-  nacionalidad, epoca literaria y otras obras destacadas.
+  quien es el autor de la obra.
 
 Como funciona con Deep Learning / APIs:
 
