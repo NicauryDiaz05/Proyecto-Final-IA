@@ -10,7 +10,7 @@ TIPOS_VALIDOS = (".pdf", ".epub", ".docx", ".txt")
 #Textos de la interfaz
 TITULO      = "🌸 Letrova"
 SUBTITULO   = "La misma letra, una vida nueva en español"
-FOOTER      = "🌸 Letrova · moderna · elegante · dinámica"
+FOOTER      = "🌸 Letrova · Moderna · Elegante · Dinámica"
 APP_TITLE   = "Letrova"
 
 # Ruta de Tesseract
