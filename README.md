@@ -34,8 +34,6 @@ fragmento para extraer tres categorias clave:
 Genero literario:Novela, Cuento, Poesía, Ensayo, Teatro, Fábula, Crónica
 Tipo de lectura: academico, entretenimiento, infantil, juvenil .
 Identificacion del autor: se analiza el contenido del texto para determinar quien es el autor de la obra.
->>>>>>> fefd1a7 ( termine la prediccion de autores y y complete los datos que faltaban)
-Como funciona con Deep Learning / APIs:
 
 Se utilizara un modelo de clasificacion de texto basado en arquitecturas de lenguaje tipo BERT o similares, entrenado o ajustado (fine-tuning) sobre un conjunto de datos de libros previamente etiquetados por genero, tipo y autor.
 
@@ -68,3 +66,5 @@ Personas que quieren descubrir nuevos libros segun su estilo de lectura preferid
 Auque este proyecto suger mas de una necesidad propia de poder avanzar mis habitos licterarios sin perder la funcion principal de los libros que es trasmitir emociones y conocimiento atraves de su paginas.
 
 La combinacion de clasificacion automatica con traduccion de calidad literaria convierte esta herramienta en una solucion unica que va mas alla de lo que ofrecen las aplicaciones de traduccion actuales.
+
+LINK DEL VIDEO :  https://youtu.be/-UQ9TyrQRCs
